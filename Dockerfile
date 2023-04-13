@@ -1,20 +1,13 @@
-# Use an OpenJDK 8 runtime as the base image
-FROM openjdk:8-jre-alpine
-
-# Set the working directory
+# Use an OpenJDK 8 runtime as the base image for the build stage
+FROM maven:3.6.3-jdk-8 AS build
 WORKDIR /app
-
-# Copy the POM.xml file to the container
 COPY pom.xml .
+RUN mvn dependency:resolve
+COPY src src
+RUN mvn package
 
-# Resolve dependencies specified in the POM.xml file
-RUN ["mvn", "dependency:resolve"]
-
-# Copy the source code to the container
-COPY . .
-
-# Compile the Java source code and package it as a JAR file
-RUN ["mvn", "package"]
-
-# Set the command to run when the container starts
-CMD ["java", "-jar", "target/spring-boot-2-hello-world-1.0.2-SNAPSHOT.jar"]
+# Use an OpenJDK 8 runtime as the base image for the runtime stage
+FROM openjdk:8-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/spring-boot-2-hello-world-1.0.2-SNAPSHOT.jar .
+CMD ["java", "-jar", "spring-boot-2-hello-world-1.0.2-SNAPSHOT.jar"]
